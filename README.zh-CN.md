@@ -73,7 +73,9 @@
 **HTML 一定动；PPTX 里微场景会动**（核心自动抓帧合成 GIF 内嵌），PDF / PNG / SVG 取静态帧。
 
 **不含**：AI 自动生成内容（含场景代码 / 封面帧）、全局素材库、模板、截图复核、桌面客户端。
-（微场景可用的内置 JS 库按需**联网下载到本地缓存**后使用，见 `install_scene_lib`。）
+（微场景可用的内置 JS 库按需**联网下载到本地缓存**后使用，见 `install_scene_lib`。
+核心本身也不生成图片——但如果 agent 自带搜图 / 生图能力，skill 会主动用它补「照片感」配图并导入工程，
+见 [references/image-workflow.md](skill/references/image-workflow.md)。）
 
 ## 演示
 
@@ -316,6 +318,7 @@ api.export(path, "pptx")
 - [sci-vector-drawing.md](skill/references/sci-vector-drawing.md) — 科研图与矢量绘图硬规范
 - [vector-playbook.md](skill/references/vector-playbook.md) — 矢量能力用法手册
 - [diagram-atlas.md](skill/references/diagram-atlas.md) — 跨领域原理图图谱
+- [image-workflow.md](skill/references/image-workflow.md) — 图片插入工作流（搜图 / 生图 → 落入工程 `assets/` → 插入页面）
 
 ## 作为 Agent Skill 使用
 
@@ -349,11 +352,12 @@ python packaging/build_skill.py     # 生成 dist/noedit-core/ 与 dist/noedit-c
 可用 `NOEDIT_CORE_ROOT` / `NOEDIT_CORE_PROJECTS` 覆盖。
 
 **怎么用**——装好后直接对 agent 说需求即可（例如「做一份关于 X 的 10 页 PPT 并导出 pptx」），
-agent 会自行遵循 [`skill/SKILL.md`](skill/SKILL.md)。三条要点：
+agent 会自行遵循 [`skill/SKILL.md`](skill/SKILL.md)。四条要点：
 
 1. **落笔的就是 agent 自己**——核心不生成内容，元素 JSON 由 agent 写。
 2. **「会动」的：HTML 一定动，PPTX 里微场景也动**——元素动画（`anim`）与微场景（`scene`）导 HTML 会跑；PPTX 里微场景由核心自动抓帧合成 GIF 内嵌，PDF / PNG / SVG 是静态帧（微场景取 `props.poster`）。
 3. **素材只有工程内本地副本**——`import_asset` 后把 `relPath` 写进 `props.src`，随工程文件夹迁移。
+4. **agent 自带搜图 / 生图能力时会主动使用**——封面视觉、实景等「照片感」配图由 agent 搜图 / 生图后，先经 `import_asset` / `upload_asset` 落进 `assets/` 再引用；结构图 / 原理图 / 流程图仍然必须用矢量。详见 `SKILL.md`「图片策略」与 [references/image-workflow.md](skill/references/image-workflow.md)。
 
 ## 自测
 
