@@ -123,10 +123,16 @@ function relocalizePages() {
 }
 
 async function call(method, ...args) {
+  // 尾参带 _kw 标记 → 以命名参数（kwargs）发给后端，避免占错位置参数
+  let kw = null;
+  const last = args[args.length - 1];
+  if (last && typeof last === 'object' && last._kw) {
+    kw = { ...last }; delete kw._kw; args.pop();
+  }
   const resp = await fetch('/api/call', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ method, args }),
+    body: JSON.stringify(kw ? { method, args, kwargs: kw } : { method, args }),
   });
   let data;
   try {
@@ -825,7 +831,7 @@ function renderProps() {
   const propsKeys = Object.keys(props);
   if (!propsKeys.length) note(propsBox, t('props.noProps'));
   propsKeys.forEach((k) => {
-    if (k === 'src' && (el.type === 'image' || el.type === 'video' || el.type === 'audio')) {
+    if (k === 'src' && (el.type === 'image' || el.type === 'video' || el.type === 'audio' || el.type === 'digital_human')) {
       const ctl = row(propsBox, k, textInput(props[k] || '', (v) => commit({ ['props.' + k]: v })));
       const btn = document.createElement('button');
       btn.className = 'mini';
@@ -1068,7 +1074,8 @@ async function onDeleteElement() {
 async function uploadInto(el, key) {
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = el.type === 'video' ? 'video/*' : (el.type === 'audio' ? 'audio/*' : 'image/*');
+  input.accept = el.type === 'video' || el.type === 'digital_human' ? 'video/*'
+    : (el.type === 'audio' ? 'audio/*' : 'image/*');
   input.addEventListener('change', async () => {
     const file = input.files && input.files[0];
     if (!file) return;
@@ -1408,12 +1415,69 @@ function exportDir() {
   return norm(dir) === norm(S.project) ? dir + ' ' + t('export.dirSuffix') : dir;
 }
 
+// ---------------- 演示模式：导出前弹窗选择（纯 PPT / 音频 / 数字人） ----------------
+const MODE_KEY = 'noedit.export.mode';      // localStorage：记住的演示模式
+function savedMode() {
+  try { return localStorage.getItem(MODE_KEY) || ''; } catch (e) { return ''; }
+}
+
+/** 打开模式弹窗，确认后继续导出；返回 promise（resolve 出模式值）。 */
+function askMode(fmt) {
+  return new Promise((resolve) => {
+    const modal = byId('mode-modal');
+    const saved = savedMode();
+    const hasDh = (S.pages || []).some(
+      (p) => (p.elements || []).some((e) => e.type === 'digital_human'));
+    const hasAudio = (S.pages || []).some(
+      (p) => (p.elements || []).some((e) => e.type === 'audio'));
+    byId('mode-sub').textContent = t('mode.sub', { fmt: fmt.toUpperCase() });
+    // 工程里实际有什么，提示相应地加强
+    document.querySelectorAll('.mode-card').forEach((card) => {
+      const v = card.querySelector('input').value;
+      card.classList.toggle('dim', (v === 'dh' && !hasDh) || (v === 'audio' && !hasAudio));
+      const note = card.querySelector('.mode-hint');
+      if (note) note.remove();
+      if (v === 'dh' && !hasDh) {
+        const s = document.createElement('div');
+        s.className = 'mode-hint';
+        s.textContent = t('mode.noDh');
+        card.appendChild(s);
+      }
+    });
+    let picked = saved || 'audio';
+    document.querySelectorAll('.mode-card input').forEach((r) => { r.checked = (r.value === picked); });
+    modal.hidden = false;
+    const close = () => { modal.hidden = true; modeOk.onclick = null; modeCancel.onclick = null; };
+    const modeOk = byId('mode-ok');
+    const modeCancel = byId('mode-cancel');
+    modeOk.onclick = () => {
+      picked = (document.querySelector('.mode-card input:checked') || {}).value || 'audio';
+      const remember = byId('mode-remember').checked;
+      try {
+        if (remember) localStorage.setItem(MODE_KEY, picked);
+        else localStorage.removeItem(MODE_KEY);
+      } catch (e) { /* 隐私模式不让存就算了 */ }
+      close();
+      resolve(picked);
+    };
+    modeCancel.onclick = () => { close(); resolve(''); };
+  });
+}
+
 async function doExport(fmt) {
   byId('export-menu').hidden = true;
   if (!S.project) return;
+  let mode = savedMode();
+  if (!mode) {
+    // 没记住过选择 → 弹窗问一次要「纯 PPT / 音频 / 数字人」
+    mode = await askMode(fmt);
+    if (!mode) return;
+  }
+  // audio 与 dh 在后端都映射 full（保留音频/数字人）；plain 才剥掉媒体
+  const mediaMode = mode === 'plain' ? 'plain' : 'full';
   toast(t('export.working', { fmt: fmt.toUpperCase() }));
   try {
-    const res = await call('export', S.project, fmt, exportDir());
+    const res = await call('export', S.project, fmt, exportDir(), { _kw: true, mediaMode });
     if (!res || res.ok === false) {
       toast(t('export.failed', { msg: (res && res.message) || '?' }), 'err');
       return;

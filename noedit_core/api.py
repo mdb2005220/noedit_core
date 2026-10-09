@@ -57,6 +57,8 @@ __all__ = [
     "remove_scene_lib",
     "compose_scene_gif",
     "export_scene_gif",
+    "dh_status",
+    "generate_digital_human",
 ]
 
 # ---------------------------------------------------------------- 工程
@@ -342,6 +344,8 @@ def export(path: str, fmt: str = "pptx", out_dir: str = "", scene_gifs=None, **o
     - pptx 需 python-pptx；pdf / png / svg 需本机 Edge/Chrome（无头打印/渲染）。
     - png / svg 额外支持 options：pages（"1" / "1,3" / "2-5"，空=全部）、
       dpi（96/150/300/600）、transparent（bool）。
+    - mediaMode（演示模式）：plain = 纯 PPT（导出时剥掉 audio / digital_human，安静放映），
+      full = 默认（音频 / 数字人照常嵌入）。UI 导出弹窗三选一即走这里。
 
     微场景 vs 导出格式：
     - html：微场景是真身（沙箱 iframe 跑 props.code），会动；
@@ -352,6 +356,16 @@ def export(path: str, fmt: str = "pptx", out_dir: str = "", scene_gifs=None, **o
     root = project_root(path)
     with project_lock(root):
         manifest = read_manifest(root)
+    media_mode = str(options.pop("mediaMode", "full") or "full").strip().lower()
+    if media_mode not in ("plain", "full"):
+        raise CoreError("mediaMode 只支持 plain（纯 PPT）或 full（含音频/数字人）")
+    if media_mode == "plain":
+        manifest = copy.deepcopy(manifest)
+        for page in (manifest.get("pages") or []):
+            page["elements"] = [
+                el for el in (page.get("elements") or [])
+                if el.get("type") not in ("audio", "digital_human")
+            ]
     fmt = (fmt or "pptx").lower()
     src = str(root)
     if fmt == "html":
@@ -599,3 +613,40 @@ def element_types() -> list[dict]:
             "modelNote": str(spec.get("modelNote") or "").strip(),
         })
     return sorted(out, key=lambda x: x["type"])
+
+
+# ---------------------------------------------------------------- 数字人（可选模块 dh）
+
+
+def dh_status() -> dict:
+    """数字人模块环境探测：{engine: 'ok' | 'missing ...'}。
+
+    dh 是可选模块：未安装重依赖时本函数照常返回（lightweight 档只要
+    Pillow + ffmpeg/imageio-ffmpeg 就能跑），核心其余功能不受影响。
+    """
+    try:
+        from .dh import validator
+        return validator.check_all()
+    except Exception as exc:  # noqa: BLE001 —— 模块被拆走时给个明确说法
+        return {"error": "数字人模块不可用: %s" % exc}
+
+
+def generate_digital_human(image: str, audio: str, engine: str = "auto",
+                            out_dir: str = "", out_name: str = "") -> dict:
+    """生成数字人播报视频（照片 + 讲稿音频 → 带声 MP4）。
+
+    engine: "auto"（liveportrait → sadtalker → lightweight 自动探测）或指定引擎名；
+    返回 {video: 输出绝对路径, engine: 实际使用的引擎}。
+    拿到 video 后走 import_asset 落进工程 assets/，再 insert 一个 digital_human 元素引用它。
+    许可与方案对比见 noedit_core/dh/README.md（Wav2Lip 严禁商用，别用）。
+    """
+    try:
+        from .dh import generator
+    except Exception as exc:  # noqa: BLE001 —— 模块被拆走时给个明确说法
+        raise CoreError("数字人模块不可用: %s" % exc) from exc
+    try:
+        return generator.generate(image, audio, engine=engine,
+                                  out_dir=out_dir or None,
+                                  out_name=out_name or None)
+    except Exception as exc:  # noqa: BLE001 —— 引擎错误原样抛给调用方
+        raise CoreError(str(exc)) from exc

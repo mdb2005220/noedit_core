@@ -69,6 +69,7 @@
 **能力范围**：工程读写、页面与元素增删改、20 种统计图、矢量图形（shape / path / connector）、
 **内置矢量图标库**（1800+ 个图标，搜索即插成可编辑的 `path` 元素）、表格 / 代码 / 公式、
 音频（讲稿配音 / 背景乐——`audio` 元素；导出 HTML 真播、PPTX 真嵌音轨、本地 UI 有可拖动的音轨面板）、
+数字人播报（**可选可拆分模块** `noedit_core/dh/`——照片 + 讲稿音频 → 说话人视频，作为 `digital_human` 元素插入；开源引擎 LivePortrait / SadTalker（MIT）、零依赖 lightweight 兜底档、付费云 API 三路可选；导出弹窗三选一「纯 PPT / 音频 / 数字人」；许可对比与拆分/卸载步骤见 `noedit_core/dh/README.md`）、
 工程内本地素材、5 种导出格式，以及**内置的浏览器编辑器**（本地起服务，浏览器打开即可
 预览、选中元素改属性）；元素动画（`anim`）与微场景（`scene`）——
 **HTML 一定动；PPTX 里微场景会动**（核心自动抓帧合成 GIF 内嵌），PDF / PNG / SVG 取静态帧。
@@ -175,6 +176,7 @@ noedit_core/
 │  └─ core/                # 核心实现：projects / export / actions / element_schema /
 │                          #   assets / icon_catalog / shape_outline / connector_geom / store ...
 │  └─ web/                 # 渲染期资源：element-schema.json、icon-catalog*.json、render-kit、katex
+│  └─ dh/                  # 可选数字人模块（可拆分：lightweight / liveportrait / sadtalker / cloud 四档引擎）
 ├─ skill/                  # Agent Skill：怎么用这套核心（SKILL.md + references/）
 └─ tests/smoke.py          # 端到端冒烟测试
 ```
@@ -321,6 +323,7 @@ api.export(path, "pptx")
 - [diagram-atlas.md](skill/references/diagram-atlas.md) — 跨领域原理图图谱
 - [image-workflow.md](skill/references/image-workflow.md) — 图片插入工作流（搜图 / 生图 → 落入工程 `assets/` → 插入页面）
 - [audio-workflow.md](skill/references/audio-workflow.md) — 音频插入工作流（TTS 合成 / 本地素材 → 落入工程 `assets/` → 插入页面）
+- [digital-human-workflow.md](skill/references/digital-human-workflow.md) — 数字人播报工作流（照片 + 讲稿 → dh 模块生成 → 落入工程 → 插入页面；含引擎选择与许可红线）
 
 ## 作为 Agent Skill 使用
 

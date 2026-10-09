@@ -759,6 +759,33 @@ api.list_assets(path)   # -> [{name, relPath, kind, size, exists}, ...]
 - 音频条默认显示在画布上（胶囊 + 名字），排版时把它当一个小元素摆，**不要压住正文**；
   想低调可以摆到页脚角落或与底色同色。
 
+### 数字人策略（dh 可选模块）
+
+**何时值得数字人**（比音频更克制——生成成本高、每页最多 1 个）：
+- 无人讲解的对外演示 / 产品介绍 → 封面或关键页放一个数字人播报；
+- 教学 / 慕课 → 讲解页配虚拟讲师；
+- **现场有人演讲 → 不用**（真人 + 数字人声音互相打架）。
+
+**来源四档（先 `api.dh_status()` 探测，有哪档用哪档）**：
+1. **用户直接给了播报视频** → `import_asset` 落 `assets/`，插 `digital_human` 元素；
+2. **本地有 LivePortrait / SadTalker 仓库**（开源 MIT 可商用）→ `api.generate_digital_human(image, audio, engine="auto")` 生成；
+3. **有云端数字人 key**（Azure / 腾讯云，付费）→ 按 `dh/cloud_config.example.json` 配好后用 `engine="cloud"`；
+4. **都没有** → 至少用 `engine="auto"` 探到 **lightweight 档**（Pillow + ffmpeg 呼吸缩放 + 音画合并，效果朴素但全链路可跑）；
+   连图片/音频素材都拿不到就别硬塞。
+
+**许可红线（务必记住）**：**Wav2Lip 严禁商用**（LRS2 数据集）；GeneFace++ / ER-NeRF 是研究代码无宽松商用许可；
+**LivePortrait（快手 KlingAI）与 SadTalker 代码 MIT 可商用**，但部署商用前请再核对官方权重声明；
+Azure / 腾讯云按量付费遵守服务条款。详细对比表与拆分/卸载步骤见 `noedit_core/dh/README.md`。
+
+**用法要点**：
+- 元素：`{"type":"digital_human","name":"页1-数字人","x":880,"y":390,"w":360,"h":300,
+  "props":{"src":"assets/host.mp4","title":"虚拟讲解员","startAt":0,"autoplay":true,"volume":1}}`；
+- **照片要正脸、干净背景**；**讲稿音频**先按「音频策略」合成好；一页 **最多 1 个**数字人；
+- `props.startAt` = 进页第几秒开始播报（与 audio 同语义）；默认摆**右下角**不压正文；
+- 导出行为：HTML 进视口自动播报、PPTX 真嵌视频放映可播、PDF/PNG/SVG 是封面帧 + 名牌徽章；
+- **导出弹窗三选一**：纯 PPT（`mediaMode="plain"` 剥掉音频与数字人）/ 音频模式 / 数字人模式——
+  问用户要哪种，用户说「纯 PPT」或现场放映就剥。
+
 ## 导出
 
 ```python
@@ -803,6 +830,7 @@ api.export(path, "svg", pages="")
 | 想把具象图标放进页面 | **有内置矢量图标库**（1800+ 个）：`api.icon_search("箭头")` 找 id → `api.icon_insert(path, id, x=, y=, size=120, color="#c0392b")`。单色图标插成一个可编辑 `path`（能换色）；多色图标插成 `group` 容器 + 分层成员。整组浏览用 `api.icon_groups()` / `api.icon_list(group)` |
 | 截图 / 视觉复核 | 导出 `png` 后自行查看 |
 | 给页面配音 / 背景乐 / 音效 | **支持**：`audio` 元素（工程内 `assets/` 相对路径）；你自带 TTS 云接口就**主动合成**再落入 `assets/` 引用（见「音频策略」）。HTML 真播 / PPTX 真嵌音轨 / PDF·PNG·SVG 静态条 |
+| 数字人播报（虚拟讲师） | **支持**：`digital_human` 元素 + 可选模块 `noedit_core/dh/`（照片 + 讲稿音频 → 播报视频）。开源引擎 LivePortrait / SadTalker（MIT 可商用）；**Wav2Lip 严禁商用**；Azure / 腾讯云付费。HTML 进页自动播 / PPTX 真嵌视频。模块可整体拆分卸载，见 `noedit_core/dh/README.md` |
 | 编辑器里的布尔运算 / 科研波形预设 | 没有；自写 `props.d` |
 
 > 一句话：**静态图（图形 + 图标 + 文字 + 连线 + 图表）全都能做；要「动」就用 HTML（真身）或 PPTX（核心自动内嵌 GIF）——PDF / PNG / SVG 是静态帧**；自动生成内容 / 场景代码 / 封面帧，这里没有。
@@ -902,6 +930,7 @@ api.export(path, "svg", pages="")
 - **导出细节与依赖** → [references/export.md](references/export.md)
 - **图片插入工作流**（搜图 / 生图 → 落入工程 → 插入页面；含关键词公式、提示词模板、失败 fallback）→ [references/image-workflow.md](references/image-workflow.md)
 - **音频插入工作流**（TTS 合成 / 本地素材 → 落入工程 → 插入页面；含讲稿写法、合成参数、startAt 排布）→ [references/audio-workflow.md](references/audio-workflow.md)
+- **数字人播报工作流**（照片 + 讲稿音频 → dh 模块生成播报视频 → 落入工程 → 插入页面；含引擎选择、许可红线、拍照/讲稿要求）→ [references/digital-human-workflow.md](references/digital-human-workflow.md)
 - **设计参考**（术语表 / CRAP / 中文排版 / 六套配色配方 / 常用版式 / 装饰手法 / 常见错误 / 示意图构成）→ [references/design-recipes.md](references/design-recipes.md)
 - **页型参考**（底板装饰层 + 封面 / 目录 / 章节 / 内容 / 致谢的逐元素坐标）→ [references/page-templates.md](references/page-templates.md)
 - **科研 & 矢量绘图参考**（做科研图表 / 原理图 / 机制图 / 任意矢量图时必读：选型 / 统计量 / 坐标轴 / 配色 / 多面板 + 矢量保真 + 投稿导出）→ [references/sci-vector-drawing.md](references/sci-vector-drawing.md)

@@ -1332,6 +1332,44 @@ def _el_audio(el: dict, props: dict, style: str, root_prefix: str) -> str:
     )
 
 
+def _el_digital_human(el: dict, props: dict, style: str, root_prefix: str) -> str:
+    """数字人：一段带声音的播报视频 + 可选底部名牌。
+
+    本质复用 <video> 渲染（剪辑 / 音量 / 封面帧语义一致），但：
+    - muted 默认 False（数字人要出声）；
+    - props.startAt = 进入该页后第几秒开始播（与 audio 的 startAt 同语义），
+      由 _DH_RUNTIME 用 IntersectionObserver 驱动（进视口延时起播、离视口暂停）；
+    - 底部一个「数字人 · 名字」小徽章（DH badge），打印 / 截图时也能看出这是数字人。
+    """
+    src = str(props.get("src") or "")
+    poster = str(props.get("poster") or "")
+    poster_attr = ""
+    if poster:
+        poster_url = poster if poster.startswith("data:") else root_prefix + poster
+        poster_attr = f' poster="{_ESC(poster_url)}"'
+    title = str(props.get("title") or "").strip() or "数字人"
+    start_at = max(0.0, _num(props.get("startAt")))
+    autoplay = "1" if props.get("autoplay", True) is not False else "0"
+    controls = props.get("controls", False) is not False
+    badge = "" if props.get("hideBadge") else (
+        f'<div class="el-dh-badge"><span class="el-dh-dot"></span>'
+        f'{_ESC(title)}</div>'
+    )
+    return (
+        f'<div class="el el-dh" style="{style}"'
+        f' data-ac-dh="1" data-ac-pagestart="{_fmt_num(start_at)}"'
+        f' data-ac-autoplay="{autoplay}"'
+        f' title="{_ESC(title)}">'
+        f'<video src="{_ESC(root_prefix + src)}"{poster_attr}'
+        f'{" controls" if controls else ""}'
+        f'{" loop" if props.get("loop") else ""}'
+        f' playsinline preload="metadata"'
+        f'{_media_play_attrs(props)} '
+        f'style="width:100%;height:100%;object-fit:{_ESC(props.get("fit") or "cover")};background:#000;"></video>'
+        f'{badge}</div>'
+    )
+
+
 def _el_link(el: dict, props: dict, style: str, root_prefix: str) -> str:
     inner = _runs_html(props.get("text", ""), props.get("runs"), True)
     return (
@@ -1471,6 +1509,39 @@ _AUDIO_RUNTIME = """
 """
 
 
+# 静态 HTML 里的数字人：页面进入视口后 data-ac-pagestart 秒开始播报，离开视口暂停并复位。
+# 与 audio 的 startAt 同语义（data-ac-pagestart），但操作对象是带声音的 <video>。
+_DH_RUNTIME = """
+(function () {
+  function num(el, key, d) { var v = parseFloat(el.getAttribute(key)); return isNaN(v) ? d : v; }
+  function bind(host) {
+    var video = host.querySelector('video');
+    if (!video) return;
+    var delay = Math.max(0, num(host, 'data-ac-pagestart', 0));
+    var auto = host.getAttribute('data-ac-autoplay') !== '0';
+    var timer = null, armed = false;
+    function play() { try { var p = video.play(); if (p && p.catch) p.catch(function () { }); } catch (e) { } }
+    function enter() {
+      if (!auto) return;
+      if (!armed) { armed = true; timer = setTimeout(play, delay * 1000); }
+    }
+    function leave() {
+      if (timer) { clearTimeout(timer); timer = null; armed = false; }
+      if (!video.paused) video.pause();
+    }
+    var page = host.closest('.page') || host;
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (es) {
+        es.forEach(function (e) { if (e.isIntersecting) { enter(); } else { leave(); } });
+      }, { threshold: page === host ? 0.5 : 0.3 }).observe(page);
+    } else if (auto) { play(); }
+  }
+  var list = document.querySelectorAll('[data-ac-dh]');
+  for (var i = 0; i < list.length; i++) bind(list[i]);
+})();
+"""
+
+
 def _scene_document(code: str, duration, loop: bool, params, libs=None, seek_at=None) -> str:
     """把场景代码包成一份独立文档（透明底、铺满），与前端 scene-runtime.js 的 sceneDocument 对应。
 
@@ -1584,6 +1655,7 @@ _ELEMENT_HTML = {
     "image": _el_image,
     "video": _el_video,
     "audio": _el_audio,
+    "digital_human": _el_digital_human,
     "link": _el_link,
     "table": _el_table,
     "code": _el_code,
@@ -1892,6 +1964,22 @@ body { margin:0; background:#8a8a8a; font-family:"Microsoft YaHei","PingFang SC"
 .el-audio-name { flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
 .el-audio-el { flex:1 1 auto; min-width:56px; height:28px; }
 @media print { .el-audio-el { display:none; } }
+.el-dh { overflow:hidden; }
+.el-dh-badge {
+  position:absolute; left:10px; bottom:10px; z-index:2;
+  display:flex; align-items:center; gap:6px;
+  background:rgba(10,16,26,0.62); color:#EAF0F7;
+  font-size:12px; line-height:1; padding:6px 12px;
+  border-radius:999px; white-space:nowrap;
+  backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+  border:1px solid rgba(255,255,255,0.14);
+}
+.el-dh-dot {
+  width:7px; height:7px; border-radius:50%;
+  background:#36CFC9; box-shadow:0 0 6px #36CFC9;
+  animation:dh-pulse 1.6s ease-in-out infinite;
+}
+@keyframes dh-pulse { 0%,100%{opacity:1; transform:scale(1);} 50%{opacity:.35; transform:scale(.72);} }
 a { color:#1a73e8; }
 """
 
@@ -1926,11 +2014,13 @@ def render_static_html(manifest: dict, root_prefix: str = "") -> str:
     video_script = f"<script>{_VIDEO_RUNTIME}{_SCRIPT_CLOSE}" if "data-ac-video" in body else ""
     # 有音频才注入播放脚本（进视口自动播 / 页内开始秒 / 音量 / 点击切换）
     audio_script = f"<script>{_AUDIO_RUNTIME}{_SCRIPT_CLOSE}" if "data-ac-audio" in body else ""
+    # 有数字人才注入播报脚本（进视口延时起播 / 离视口暂停复位）
+    dh_script = f"<script>{_DH_RUNTIME}{_SCRIPT_CLOSE}" if "data-ac-dh" in body else ""
     return (
         "<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n<meta charset=\"utf-8\"/>\n"
         f"<title>{title}</title>\n<style>{css}</style>\n{_render_kit_script()}\n</head>\n<body>\n"
         + body
-        + f"\n{play_btn}\n{anim_script}\n{video_script}\n{audio_script}\n</body>\n</html>\n"
+        + f"\n{play_btn}\n{anim_script}\n{video_script}\n{audio_script}\n{dh_script}\n</body>\n</html>\n"
     )
 
 

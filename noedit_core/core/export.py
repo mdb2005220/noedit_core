@@ -2682,6 +2682,8 @@ def _vector_ok(el: dict) -> bool:
         return True   # 幻灯片里嵌真视频（封面帧当海报）
     if etype == "audio":
         return True   # 幻灯片里嵌真音轨（音频条当海报）
+    if etype == "digital_human":
+        return True   # 幻灯片里嵌真数字人视频（封面帧 + 名牌当海报）
     if etype == "scene":
         return True   # PPTX 里换成 GIF 动图 / 封面帧静图
     if etype == "connector":
@@ -3170,6 +3172,19 @@ def _apply_video_trim(frame, props: dict, warnings: list, name: str) -> None:
     media14.insert(0, trim)
 
 
+def _pptx_dh(slide, el: dict, root: Path, warnings: list) -> None:
+    """数字人：复用视频嵌入链路（add_movie 真视频），但强制有声（mute=0）。
+
+    props.startAt / autoplay / loop / 剪辑起止与视频语义一致；放映前显示
+    poster 封面帧（有名牌更好看，没有也有深色兜底图）。
+    """
+    props = dict(el.get("props") or {})
+    props["muted"] = False          # 数字人默认出声（video 默认静音）
+    props.setdefault("controls", True)
+    name = str(el.get("name") or "数字人")
+    _pptx_video(slide, {**el, "name": name, "props": props}, root, warnings)
+
+
 def _pptx_video(slide, el: dict, root: Path, warnings: list) -> None:
     """视频：用 python-pptx 的 add_movie 把真视频嵌进 PPTX，PowerPoint 里能直接播。
 
@@ -3385,6 +3400,7 @@ _PPTX_WRITERS = {
     "image": _pptx_image,
     "video": _pptx_video,
     "audio": _pptx_audio,
+    "digital_human": _pptx_dh,
     "table": _pptx_table,
     "chart": _pptx_chart,
     "shape": _pptx_shape,

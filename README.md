@@ -69,6 +69,7 @@
 **Scope**: project read/write, page & element CRUD, 20 chart types, vector graphics (shape / path / connector),
 a **built-in vector icon library** (1800+ icons — search and insert as editable `path` elements), tables / code / math,
 audio (voice-over / background music — `audio` elements; the exported HTML really plays, PPTX embeds a real audio track, and the local UI shows a drag-able audio-track panel),
+digital-human presenters (an **optional, splittable module** `noedit_core/dh/` — photo + narration audio → a talking-head video inserted as a `digital_human` element; open-source engines LivePortrait / SadTalker (MIT), a zero-dependency lightweight fallback, or paid cloud APIs; the export dialog asks plain / audio / digital-human mode; see `noedit_core/dh/README.md` for the license table and split/uninstall steps),
 project-local assets, 5 export formats, and a **built-in browser editor** (start a local server, open it in the browser to
 preview and edit element properties by clicking). Element animation (`anim`) and micro-scenes (`scene`):
 **HTML always animates; micro-scenes animate inside PPTX too** (the core auto-captures frames and embeds a GIF), while
@@ -178,6 +179,7 @@ noedit_core/
 │  └─ core/                # Core implementation: projects / export / actions / element_schema /
 │                          #   assets / icon_catalog / shape_outline / connector_geom / store ...
 │  └─ web/                 # Render-time assets: element-schema.json, icon-catalog*.json, render-kit, katex
+│  └─ dh/                  # OPTIONAL digital-human module (splittable; lightweight / liveportrait / sadtalker / cloud engines)
 ├─ skill/                  # Agent Skill: how to use this core (SKILL.md + references/)
 └─ tests/smoke.py          # End-to-end smoke test
 ```
@@ -326,6 +328,7 @@ Full signatures, return shapes and field dictionaries: [`skill/references/`](ski
 - [diagram-atlas.md](skill/references/diagram-atlas.md) — cross-domain diagram atlas
 - [image-workflow.md](skill/references/image-workflow.md) — image insertion workflow (image search / generation → import into `assets/` → place on the canvas)
 - [audio-workflow.md](skill/references/audio-workflow.md) — audio insertion workflow (TTS synthesis / local files → import into `assets/` → place on the canvas)
+- [digital-human-workflow.md](skill/references/digital-human-workflow.md) — digital-human presenter workflow (photo + narration → dh module → `assets/` → page element; engine picks & license red lines)
 
 ## Use it as an Agent Skill
 
