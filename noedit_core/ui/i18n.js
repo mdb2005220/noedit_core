@@ -132,6 +132,13 @@ window.AC_I18N = {
       'eltype.shape': '形状',
       'eltype.table': '表格',
       'eltype.video': '视频',
+      'eltype.audio': '音频',
+      'panel.tracks': '音轨',
+      'panel.tracks.title': '本页音频的页内开始时间',
+      'tracks.hint': '拖动音频块调整它在第几秒开始播放',
+      'tracks.count': '{n} 条',
+      'tracks.at': '第 {n} 秒',
+      'tracks.startAt': '开始秒',
     },
 
     /* ---------------------------------------------------------- English */
@@ -252,6 +259,13 @@ window.AC_I18N = {
       'eltype.shape': 'Shape',
       'eltype.table': 'Table',
       'eltype.video': 'Video',
+      'eltype.audio': 'Audio',
+      'panel.tracks': 'Audio tracks',
+      'panel.tracks.title': 'Start times of this page\'s audio clips',
+      'tracks.hint': 'Drag a clip to change when it starts playing',
+      'tracks.count': '{n} clip(s)',
+      'tracks.at': 'at {n}s',
+      'tracks.startAt': 'Start (s)',
     },
 
     /* ---------------------------------------------------------- 日本語 */
@@ -372,6 +386,13 @@ window.AC_I18N = {
       'eltype.shape': '図形',
       'eltype.table': '表',
       'eltype.video': '動画',
+      'eltype.audio': '音声',
+      'panel.tracks': 'オーディオトラック',
+      'panel.tracks.title': 'このページの音声の開始秒',
+      'tracks.hint': 'ブロックをドラッグして開始秒を調整',
+      'tracks.count': '{n} 件',
+      'tracks.at': '{n} 秒',
+      'tracks.startAt': '開始秒',
     },
   },
 };

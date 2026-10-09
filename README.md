@@ -68,6 +68,7 @@
 
 **Scope**: project read/write, page & element CRUD, 20 chart types, vector graphics (shape / path / connector),
 a **built-in vector icon library** (1800+ icons — search and insert as editable `path` elements), tables / code / math,
+audio (voice-over / background music — `audio` elements; the exported HTML really plays, PPTX embeds a real audio track, and the local UI shows a drag-able audio-track panel),
 project-local assets, 5 export formats, and a **built-in browser editor** (start a local server, open it in the browser to
 preview and edit element properties by clicking). Element animation (`anim`) and micro-scenes (`scene`):
 **HTML always animates; micro-scenes animate inside PPTX too** (the core auto-captures frames and embeds a GIF), while
@@ -324,6 +325,7 @@ Full signatures, return shapes and field dictionaries: [`skill/references/`](ski
 - [vector-playbook.md](skill/references/vector-playbook.md) — practical guide to the vector capabilities
 - [diagram-atlas.md](skill/references/diagram-atlas.md) — cross-domain diagram atlas
 - [image-workflow.md](skill/references/image-workflow.md) — image insertion workflow (image search / generation → import into `assets/` → place on the canvas)
+- [audio-workflow.md](skill/references/audio-workflow.md) — audio insertion workflow (TTS synthesis / local files → import into `assets/` → place on the canvas)
 
 ## Use it as an Agent Skill
 

@@ -68,6 +68,7 @@
 
 **スコープ**：プロジェクトの読み書き、ページと要素の追加・変更・削除、20 種のグラフ、ベクター図形（shape / path / connector）、
 **内蔵のベクターアイコンライブラリ**（1800+ アイコン。検索して挿入すると編集可能な `path` 要素になる）、表 / コード / 数式、
+音声（ナレーション / BGM —— `audio` 要素。書き出した HTML は実際に再生され、PPTX には本物の音声トラックが埋め込まれ、ローカル UI にはドラッグ可能なオーディオトラックパネルがあります）、
 プロジェクト内ローカル素材、5 種類の書き出し形式、そして**内蔵のブラウザエディタ**（ローカルでサーバーを起動し、ブラウザで開くだけで
 プレビューと、要素を選んでのプロパティ編集ができる）。要素アニメーション（`anim`）とマイクロシーン（`scene`）——
 **HTML は必ず動く。PPTX でもマイクロシーンは動く**（コアが自動でフレームを取り込み GIF を埋め込む）。PDF / PNG / SVG は静止フレームになります。
@@ -324,6 +325,7 @@ api.export(path, "pptx")
 - [vector-playbook.md](skill/references/vector-playbook.md) — ベクター機能の実践ガイド
 - [diagram-atlas.md](skill/references/diagram-atlas.md) — 分野横断の原理図アトラス
 - [image-workflow.md](skill/references/image-workflow.md) — 画像挿入ワークフロー（画像検索 / 生成 → `assets/` へ取り込み → ページへ配置）
+- [audio-workflow.md](skill/references/audio-workflow.md) — 音声挿入ワークフロー（TTS 合成 / ローカル素材 → `assets/` へ取り込み → ページへ配置）
 
 ## Agent Skill として使う
 

@@ -296,6 +296,33 @@
         ] }
       ]
     },
+    "audio": {
+      "label": "音频",
+      "name": "音频",
+      "w": 320,
+      "h": 72,
+      "style": { "borderRadius": 36, "background": "#16283F", "borderWidth": 1, "borderColor": "#24466B" },
+      "modelNote": "音频（讲稿配音 / 背景乐 / 音效）。props.src 只认工程内 assets/ 相对路径；进入该页后按 props.startAt 秒自动开始播放（配合 autoplay），导出 HTML 离线可播、PPTX 里真嵌音轨放映可播；PDF / PNG / SVG 里渲染成一个静态音频条（图标 + 名称），不影响版面。AI 合成音频（TTS）先 upload_asset 落进 assets/ 再引用；一页配多条音频时用 startAt 错开。",
+      "sections": [
+        { "title": "音频", "rows": [
+          { "cols": 1, "fields": [
+            { "path": "props.src", "label": "素材", "widget": "text", "default": "", "placeholder": "assets/xxx.mp3", "desc": "音频素材（工程内相对路径）" },
+            { "path": "props.title", "label": "显示名", "widget": "text", "default": "", "desc": "音频条上显示的名字（留空用素材文件名）" }
+          ] }
+        ] },
+        { "sep": true, "title": "播放", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "props.autoplay", "label": "自动播放", "widget": "checkbox", "default": true, "desc": "进入该页（或打开导出件）后自动开始" },
+            { "path": "props.loop", "label": "循环播放", "widget": "checkbox", "default": false },
+            { "path": "props.controls", "label": "显示控制条", "widget": "checkbox", "default": true, "desc": "音频条上显示播放/暂停按钮" }
+          ] },
+          { "cols": 2, "fields": [
+            { "path": "props.startAt", "label": "页内开始秒", "widget": "number", "default": 0, "min": 0, "max": 3600, "fallback": 0, "desc": "进入该页后第几秒开始播放（0 = 立即）；多条音频用它错开" },
+            { "path": "props.volume", "label": "音量", "widget": "range", "default": 1, "min": 0, "max": 1, "step": 0.05 }
+          ] }
+        ] }
+      ]
+    },
     "link": {
       "label": "链接",
       "name": "链接",

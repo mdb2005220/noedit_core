@@ -585,6 +585,7 @@ function renderElements() {
     li.className = 'empty';
     li.textContent = t('els.empty');
     list.appendChild(li);
+    renderTracks();
     return;
   }
   // 画布上 z 越大越靠上；列表按「上层在前」展示更直观
@@ -601,6 +602,98 @@ function renderElements() {
     li.appendChild(tag);
     li.addEventListener('click', () => select(e.id));
     list.appendChild(li);
+  });
+  renderTracks();
+}
+
+// ---------------------------------------------------------------- 音轨面板
+/** 时间轴总长（秒）：所有音频 startAt 的最大值再留 10s 余量，至少 30s。 */
+function trackTotal(auds) {
+  let max = 0;
+  auds.forEach((e) => {
+    const p = (e.props && parseFloat(e.props.startAt)) || 0;
+    if (p > max) max = p;
+  });
+  return Math.max(30, Math.ceil(max + 10));
+}
+
+/** 音轨面板：本页 audio 元素各占一行，块的位置 = 页内开始秒，可拖动。 */
+function renderTracks() {
+  const box = byId('tracks');
+  const body = byId('tracks-body');
+  const scale = byId('tracks-scale');
+  const note = byId('tracks-note');
+  if (!box || !body || !scale) return;
+  body.innerHTML = '';
+  scale.innerHTML = '';
+  const page = currentPage();
+  const auds = ((page && page.elements) || []).filter((e) => e.type === 'audio');
+  if (!auds.length) { box.hidden = true; return; }
+  box.hidden = false;
+  if (note) note.textContent = t('tracks.count', { n: auds.length });
+
+  const total = trackTotal(auds);
+
+  // 刻度：每 10s 一格
+  for (let s = 0; s <= total; s += 10) {
+    const tick = document.createElement('span');
+    tick.className = 'tracks-tick' + (s === 0 ? ' zero' : '');
+    tick.style.left = (s / total) * 100 + '%';
+    tick.textContent = s + 's';
+    scale.appendChild(tick);
+  }
+
+  auds.forEach((el) => {
+    const startAt = Math.max(0, parseFloat((el.props && el.props.startAt) != null ? el.props.startAt : 0) || 0);
+    const row = document.createElement('div');
+    row.className = 'tracks-row';
+    const label = document.createElement('span');
+    label.className = 'tracks-label';
+    label.textContent = el.name || (el.props && el.props.title) || '♪';
+    label.title = el.name || el.id;
+    label.addEventListener('click', () => select(el.id));
+    const lane = document.createElement('div');
+    lane.className = 'tracks-lane';
+    const block = document.createElement('div');
+    block.className = 'tracks-block' + (el.id === S.selectedId ? ' active' : '');
+    block.style.left = (startAt / total) * 100 + '%';
+    const icon = document.createElement('span');
+    icon.className = 'tracks-ic';
+    icon.textContent = '♪';
+    const sec = document.createElement('span');
+    sec.className = 'tracks-sec';
+    sec.textContent = startAt + 's';
+    block.appendChild(icon);
+    block.appendChild(sec);
+    block.title = t('tracks.startAt');
+    lane.appendChild(block);
+    row.appendChild(label);
+    row.appendChild(lane);
+    body.appendChild(row);
+
+    // 拖动块 = 改 props.startAt：拖动中只挪块，松手才写后端
+    dragify(block,
+      (e) => ({
+        x: e.clientX,
+        startAt,
+        laneW: lane.getBoundingClientRect().width,
+        blockW: block.getBoundingClientRect().width,
+      }),
+      (e, s) => {
+        const pxPerSec = Math.max(1, s.laneW - s.blockW) / total;
+        const v = Math.round(clamp(s.startAt + (e.clientX - s.x) / pxPerSec, 0, total));
+        block.style.left = (v / total) * 100 + '%';
+        sec.textContent = v + 's';
+      },
+      async (e, s) => {
+        const pxPerSec = Math.max(1, s.laneW - s.blockW) / total;
+        const v = Math.round(clamp(s.startAt + (e.clientX - s.x) / pxPerSec, 0, total));
+        if (v === s.startAt) return;
+        try {
+          await call('update', S.project, { 'props.startAt': v }, el.id, null, S.pageIndex);
+          await refresh();
+        } catch (err) { toast(err.message, 'err'); }
+      });
   });
 }
 
@@ -732,7 +825,7 @@ function renderProps() {
   const propsKeys = Object.keys(props);
   if (!propsKeys.length) note(propsBox, t('props.noProps'));
   propsKeys.forEach((k) => {
-    if (k === 'src' && (el.type === 'image' || el.type === 'video')) {
+    if (k === 'src' && (el.type === 'image' || el.type === 'video' || el.type === 'audio')) {
       const ctl = row(propsBox, k, textInput(props[k] || '', (v) => commit({ ['props.' + k]: v })));
       const btn = document.createElement('button');
       btn.className = 'mini';
@@ -975,7 +1068,7 @@ async function onDeleteElement() {
 async function uploadInto(el, key) {
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = el.type === 'video' ? 'video/*' : 'image/*';
+  input.accept = el.type === 'video' ? 'video/*' : (el.type === 'audio' ? 'audio/*' : 'image/*');
   input.addEventListener('change', async () => {
     const file = input.files && input.files[0];
     if (!file) return;

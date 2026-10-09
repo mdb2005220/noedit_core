@@ -736,6 +736,29 @@ api.list_assets(path)   # -> [{name, relPath, kind, size, exists}, ...]
 
 **图片要当整页底板 / 全篇背景** → 设**页面背景**（`update_page(..., all_pages=True)`），不要逐页插满幅 `image` 元素。
 
+### 音频策略
+
+**何时值得配音**（默认不加，下面任一条成立才加，且要问用户想要哪种）：
+- 「发给别人自己看」的无人讲解场景 → 给每页配讲稿旁白；
+- 氛围 / 发布会类主题 → 封面或结尾页配一小段背景乐；
+- 教学演示 → 关键步骤配音效或解说。
+
+**来源三档（有哪档用哪档）**：
+1. **用户提供了本机音频** → `api.import_asset(path, [文件])` 落进 `assets/`；
+2. **你（agent）自带 TTS / 云端语音合成接口** → 按该页内容写讲稿文本合成（提示词给：文本 + 语言 + 音色 + 语速 + 情感，见 [references/audio-workflow.md](references/audio-workflow.md)），
+   拿到文件走 `import_asset`、拿到字节 / dataURL 走 `upload_asset` 落 `assets/`，再插入 `audio` 元素；
+3. **没有素材也没能力合成** → 不加，别用占位框糊弄（音频没声音就没有意义）。
+
+**用法要点**：
+- 元素：`{"type":"audio","name":"页1-讲稿","x":..,"y":..,"w":320,"h":72,
+  "props":{"src":"assets/p1.mp3","title":"第 1 页讲稿","startAt":0,"autoplay":true,"volume":1}}`；
+- **`props.src` 只认工程内 `assets/` 相对路径**（同图片核心约束，不许外链）；
+- **`startAt` = 进入该页后第几秒开始播**：一页配多条时用它错开（讲解 0s、背景乐 3s 渐入）；
+- 导出行为：**HTML 真播**（页面滚进视口自动开始，`startAt` 秒后起播，离开视口暂停）；
+  **PPTX 真嵌音轨**（放映能播）；**PDF / PNG / SVG** 是静态音频条（喇叭 + 名字）。
+- 音频条默认显示在画布上（胶囊 + 名字），排版时把它当一个小元素摆，**不要压住正文**；
+  想低调可以摆到页脚角落或与底色同色。
+
 ## 导出
 
 ```python
@@ -779,6 +802,7 @@ api.export(path, "svg", pages="")
 | 全局素材库、模板 | 没有；素材用工程内 `assets/`（见上节），版式自己按 `element_types()` 搭。**你自己带的生图 / 搜图能力不受此限**（见「图片策略」第 2 档）——但图必须先落进 `assets/` |
 | 想把具象图标放进页面 | **有内置矢量图标库**（1800+ 个）：`api.icon_search("箭头")` 找 id → `api.icon_insert(path, id, x=, y=, size=120, color="#c0392b")`。单色图标插成一个可编辑 `path`（能换色）；多色图标插成 `group` 容器 + 分层成员。整组浏览用 `api.icon_groups()` / `api.icon_list(group)` |
 | 截图 / 视觉复核 | 导出 `png` 后自行查看 |
+| 给页面配音 / 背景乐 / 音效 | **支持**：`audio` 元素（工程内 `assets/` 相对路径）；你自带 TTS 云接口就**主动合成**再落入 `assets/` 引用（见「音频策略」）。HTML 真播 / PPTX 真嵌音轨 / PDF·PNG·SVG 静态条 |
 | 编辑器里的布尔运算 / 科研波形预设 | 没有；自写 `props.d` |
 
 > 一句话：**静态图（图形 + 图标 + 文字 + 连线 + 图表）全都能做；要「动」就用 HTML（真身）或 PPTX（核心自动内嵌 GIF）——PDF / PNG / SVG 是静态帧**；自动生成内容 / 场景代码 / 封面帧，这里没有。
@@ -877,6 +901,7 @@ api.export(path, "svg", pages="")
 - **API 完整签名与返回结构** → [references/api.md](references/api.md)（**微场景（scene）** API：`scene_libs` / `install_scene_lib` / `export_scene_gif` / `compose_scene_gif` 见其中「微场景」节）
 - **导出细节与依赖** → [references/export.md](references/export.md)
 - **图片插入工作流**（搜图 / 生图 → 落入工程 → 插入页面；含关键词公式、提示词模板、失败 fallback）→ [references/image-workflow.md](references/image-workflow.md)
+- **音频插入工作流**（TTS 合成 / 本地素材 → 落入工程 → 插入页面；含讲稿写法、合成参数、startAt 排布）→ [references/audio-workflow.md](references/audio-workflow.md)
 - **设计参考**（术语表 / CRAP / 中文排版 / 六套配色配方 / 常用版式 / 装饰手法 / 常见错误 / 示意图构成）→ [references/design-recipes.md](references/design-recipes.md)
 - **页型参考**（底板装饰层 + 封面 / 目录 / 章节 / 内容 / 致谢的逐元素坐标）→ [references/page-templates.md](references/page-templates.md)
 - **科研 & 矢量绘图参考**（做科研图表 / 原理图 / 机制图 / 任意矢量图时必读：选型 / 统计量 / 坐标轴 / 配色 / 多面板 + 矢量保真 + 投稿导出）→ [references/sci-vector-drawing.md](references/sci-vector-drawing.md)
